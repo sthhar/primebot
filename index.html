@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PrimeBot Demo</title>
+<style>
+body{margin:0;background:#061b2b;color:#eef5f9;font-family:system-ui,sans-serif}
+main{max-width:720px;margin:auto;padding:24px 18px 40px}
+.card{background:#0d3048;border:1px solid #18506a;border-radius:24px;padding:20px;margin:14px 0}
+h1{margin:0 0 6px}.muted{color:#91a8b9}.big{font-size:34px;font-weight:900;margin:18px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.metric{background:#123b56;border-radius:18px;padding:15px}
+button{border:0;border-radius:24px;padding:14px 18px;font-weight:800;margin:5px;cursor:pointer}
+.start{background:#4ed5ca}.stop{background:#ed2933;color:white}.reset{background:#54c7ef}
+.trade{padding:12px 0;border-bottom:1px solid #1b4962}.win{color:#4ed5ca}.loss{color:#ff5359}
+</style>
+</head>
+<body>
+<main>
+<h1>PrimeBot</h1><div class="muted">Demo Trading Engine</div>
+
+<div class="card">
+  <div class="muted">Saldo Demo</div>
+  <div class="big" id="balance">-</div>
+  <div class="grid">
+    <div class="metric"><div class="muted">Profit Hari Ini</div><b id="profit">-</b></div>
+    <div class="metric"><div class="muted">Bot</div><b id="status">-</b></div>
+  </div>
+  <p><button class="start" onclick="action('/api/bot/start')">▶ Start Bot</button>
+  <button class="stop" onclick="action('/api/bot/stop')">■ Stop Bot</button>
+  <button class="reset" onclick="action('/api/reset-demo')">↻ Reset Demo</button></p>
+</div>
+
+<div class="card">
+  <h2>Konfigurasi</h2>
+  <p>Strategi: <b id="strategy">Fast</b></p>
+  <p>Asset: <b id="asset">Z-CRY/IDX</b></p>
+  <p>Bid: <b id="bid">-</b></p>
+  <p>Interval: <b id="interval">-</b></p>
+</div>
+
+<div class="card">
+  <h2>Bid Berjalan</h2>
+  <div id="current">Tidak ada trade aktif.</div>
+</div>
+
+<div class="card">
+  <h2>Riwayat</h2>
+  <div id="trades"></div>
+</div>
+</main>
+<script>
+const money = n => "Rp " + Math.round(n).toLocaleString("id-ID");
+async function action(url){
+  await fetch(url,{method:"POST"});
+  load();
+}
+async function load(){
+  const r=await fetch("/api/state"); const s=await r.json();
+  document.getElementById("balance").textContent=money(s.wallet.balance);
+  document.getElementById("profit").textContent=money(s.wallet.profitToday);
+  document.getElementById("status").textContent=s.bot.running?"LIVE":"STOPPED";
+  document.getElementById("strategy").textContent=s.bot.strategy;
+  document.getElementById("asset").textContent=s.bot.asset;
+  document.getElementById("bid").textContent=money(s.bot.bidAmount);
+  document.getElementById("interval").textContent=s.bot.intervalSeconds+" detik";
+  document.getElementById("current").innerHTML=s.currentTrade ?
+    `<b>${s.currentTrade.asset}</b><br>${s.currentTrade.direction} · ${money(s.currentTrade.amount)}<br><span class="muted">OPEN ${s.currentTrade.openedAt}</span>` :
+    "Tidak ada trade aktif.";
+  document.getElementById("trades").innerHTML=s.trades.length?s.trades.slice(0,20).map(t=>
+    `<div class="trade"><b>${t.asset}</b> · ${t.direction}<br>${money(t.amount)} · <span class="${t.status==='WIN'?'win':'loss'}">${t.status} ${money(t.profit)}</span><br><span class="muted">${t.closedAt}</span></div>`
+  ).join(""):"Belum ada riwayat.";
+}
+load(); setInterval(load,1000);
+</script>
+</body>
+</html>
